@@ -1,0 +1,156 @@
+name: Build Physlaunch release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Check release sources
+        shell: pwsh
+        run: |
+          $required = @(
+            "Setup.hta",
+            "app/Physlaunch.hta",
+            "app/PhyslaunchRunner.vbs",
+            "assets/physlaunch.ico",
+            "assets/physlaunch.png",
+            "README.md",
+            "CHANGELOG.md",
+            "LICENSE",
+            "setup-bootstrap/Physlaunch.SetupBootstrap.csproj",
+            "setup-bootstrap/Program.cs"
+          )
+          foreach ($file in $required) {
+            if (!(Test-Path -LiteralPath $file -PathType Leaf)) {
+              throw "Required release file is missing: $file"
+            }
+          }
+
+          $setup = Get-Content -LiteralPath "Setup.hta" -Raw
+          if ($setup -notmatch "(?im)^\s*Sub\s+SetupBoot\b" -or
+              $setup -notmatch "(?im)^\s*Sub\s+RunNext\b") {
+            throw "Setup.hta is missing a VBScript startup or installer routine."
+          }
+
+          $runner = Get-Content -LiteralPath "app/PhyslaunchRunner.vbs" -Raw
+          if ($runner -notmatch "-applaunch") {
+            throw "The Runner must launch games through Steam.exe directly."
+          }
+
+          $launcher = Get-Content -LiteralPath "app/Physlaunch.hta" -Raw
+          if ($launcher -notmatch "Attributes And 2") {
+            throw "The launcher must verify that its marker file is hidden."
+          }
+
+          & cscript.exe //nologo "app/PhyslaunchRunner.vbs" /open
+          if ($LASTEXITCODE -ne 0) {
+            throw "PhyslaunchRunner.vbs failed its startup check."
+          }
+
+          foreach ($page in @("app/Physlaunch.hta", "Setup.hta")) {
+            $html = Get-Content -LiteralPath $page -Raw
+            $match = [regex]::Match($html, '(?is)<script\s+type=["'']text/vbscript["'']\s*>(.*?)</script>')
+            if (!$match.Success) {
+              throw "$page has no VBScript block."
+            }
+
+            $script = $match.Groups[1].Value
+            if ($page -eq "Setup.hta") {
+              $script = $script -replace '(?im)^\s*Set fso = CreateObject\("Scripting.FileSystemObject"\)\s*$', ''
+              $script = $script -replace '(?im)^\s*Set sh = CreateObject\("WScript.Shell"\)\s*$', ''
+              $script = $script -replace '(?im)^\s*onDesktop = True\s*$', ''
+              $script = $script -replace '(?im)^\s*onRunner = True\s*$', ''
+              $script = $script -replace '(?im)^\s*onAssoc = True\s*$', ''
+              $script = $script -replace '(?im)^\s*deletePending = False\s*$', ''
+            }
+
+            $temporaryScript = Join-Path $env:RUNNER_TEMP ([guid]::NewGuid().ToString("N") + ".vbs")
+            Set-Content -LiteralPath $temporaryScript -Value $script -Encoding Unicode
+            & cscript.exe //nologo $temporaryScript
+            if ($LASTEXITCODE -ne 0) {
+              throw "$page contains a VBScript syntax error."
+            }
+          }
+
+      - name: Build standalone Setup executable
+        shell: pwsh
+        run: ./setup-bootstrap/build.ps1
+
+      - name: Verify embedded Setup payload
+        shell: pwsh
+        run: |
+          & ./dist/PhyslaunchSetup.exe --check-package
+          if ($LASTEXITCODE -ne 0) {
+            throw "Setup.exe is missing one or more embedded files."
+          }
+
+      - name: Assemble source archive and checksums
+        shell: pwsh
+        run: |
+          $stage = Join-Path $env:RUNNER_TEMP "Physlaunch-Windows-HTA"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+
+          $files = @(
+            "Setup.hta",
+            "README.md",
+            "CHANGELOG.md",
+            "LICENSE"
+          )
+          Copy-Item -LiteralPath $files -Destination $stage
+
+          $app = Join-Path $stage "app"
+          New-Item -ItemType Directory -Force -Path $app | Out-Null
+          Copy-Item -LiteralPath @("app/Physlaunch.hta", "app/PhyslaunchRunner.vbs") -Destination $app
+
+          $assets = Join-Path $stage "assets"
+          New-Item -ItemType Directory -Force -Path $assets | Out-Null
+          Copy-Item -LiteralPath @("assets/physlaunch.ico", "assets/physlaunch.png") -Destination $assets
+
+          $zip = Join-Path $env:RUNNER_TEMP "Physlaunch-Windows-HTA.zip"
+          Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zip -CompressionLevel Optimal
+
+          $releaseFiles = @(
+            (Join-Path $env:GITHUB_WORKSPACE "dist/PhyslaunchSetup.exe"),
+            $zip
+          )
+          $checksums = foreach ($file in $releaseFiles) {
+            $hash = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $([IO.Path]::GetFileName($file))"
+          }
+          Set-Content -LiteralPath (Join-Path $env:RUNNER_TEMP "SHA256SUMS.txt") -Value $checksums -Encoding ascii
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Physlaunch-Windows
+          path: |
+            dist/PhyslaunchSetup.exe
+            ${{ runner.temp }}\Physlaunch-Windows-HTA.zip
+            ${{ runner.temp }}\SHA256SUMS.txt
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Physlaunch-Windows
+          path: artifacts
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*

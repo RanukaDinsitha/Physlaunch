@@ -1,0 +1,19 @@
+# Local editor and operating-system files
+.vscode/
+.history/
+.ionide/
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Java build output
+/java/build/
+/java/dist/
+/setup-bootstrap/bin/
+/setup-bootstrap/obj/
+/build/
+/dist/
+*.class
+*.jar
+*.orig
+*.stackdump

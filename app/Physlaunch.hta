@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="x-ua-compatible" content="ie=10">
+<title>Physlaunch</title>
+<HTA:APPLICATION ID="hta" APPLICATIONNAME="Physlaunch" ICON="..\assets\physlaunch.ico" BORDER="thin" CAPTION="yes" MAXIMIZEBUTTON="no" SCROLL="no" SELECTION="no" SINGLEINSTANCE="yes" SYSMENU="yes" />
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+
+<style>
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body { font-family: 'Nunito', 'Segoe UI', Tahoma, sans-serif; font-size: 14px; color: #c7d5e0; background: linear-gradient(180deg, #1b2838 0%, #171a21 100%); }
+button, input { font-family: 'Nunito', 'Segoe UI', Tahoma, sans-serif; }
+
+/* header */
+#header { position: absolute; top: 0; left: 28px; right: 28px; height: 68px; padding-top: 16px; }
+.logo { position: absolute; left: 0; top: 14px; width: 42px; height: 42px; object-fit: contain; }
+.brand { margin-left: 56px; }
+.brand h1 { margin: 0; font-size: 25px; line-height: 28px; font-weight: 900; color: #fff; }
+.brand h1 span { color: #66c0f4; }
+.brand p { margin: 1px 0 0 0; font-size: 12.5px; font-weight: 800; color: #8f98a0; }
+
+#dots { position: absolute; right: 0; top: 24px; }
+.dot { display: inline-block; width: 16px; height: 16px; margin-left: 8px; border-radius: 50%; background: #1b2838; border: 2px solid #2a475e; border-bottom-width: 4px; transition: background .2s; }
+.dot.on { border-color: #66c0f4; }
+.dot.done { background: #5ba32b; border-color: #3f7a1c; }
+
+/* layout */
+#stage { position: absolute; top: 78px; bottom: 24px; left: 28px; right: 28px; }
+.pane { background: #1b2838; border: 2px solid #2a475e; border-bottom-width: 6px; border-radius: 22px; }
+#paneGames { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; transition: width .35s cubic-bezier(.2, .9, .3, 1); }
+#stage.split #paneGames { width: calc(100% - 392px); }
+#paneSide { display: none; position: absolute; top: 0; bottom: 0; right: 0; width: 380px; overflow-y: auto; overflow-x: hidden; padding: 0 6px 0 0;
+    scrollbar-base-color: #2a475e; scrollbar-face-color: #2a475e; scrollbar-track-color: #171a21; scrollbar-arrow-color: #66c0f4; }
+#stage.split #paneSide { display: block; }
+
+.ph { height: 54px; padding: 15px 20px 0 18px; font-weight: 900; font-size: 15px; color: #fff; }
+.ph .cnt { float: right; font-size: 12.5px; font-weight: 800; color: #8f98a0; margin: 2px 0 0 12px; }
+.num { display: inline-block; width: 24px; height: 24px; line-height: 20px; border-radius: 50%; text-align: center; margin-right: 10px; font-size: 13px; font-weight: 900; color: #0e1b2a; background: #66c0f4; border: 2px solid #3d8fbe; border-bottom-width: 3px; }
+
+.mini { background: #223447; border: 2px solid #2a475e; border-bottom-width: 4px; border-radius: 12px; color: #c7d5e0; font-size: 12.5px; font-weight: 900; padding: 1px 12px; cursor: pointer; }
+.mini:hover { border-color: #66c0f4; }
+.mini:active { transform: translateY(2px); border-bottom-width: 2px; }
+.ph .mini { float: right; margin: -3px 0 0 8px; }
+#btnRefresh { float: right; }
+
+#searchBox { position: absolute; top: 52px; left: 18px; right: 18px; height: 38px; padding: 0 16px; border: 2px solid #2a475e; border-bottom-width: 4px; border-radius: 14px; background: #171a21; color: #fff; font-size: 14px; font-weight: 800; outline: none; }
+#searchBox:focus { border-color: #66c0f4; }
+
+/* game grid */
+.list { position: absolute; left: 6px; right: 6px; top: 102px; bottom: 8px; overflow-y: auto; overflow-x: hidden; padding: 10px 6px 0 12px;
+    scrollbar-base-color: #2a475e; scrollbar-face-color: #2a475e; scrollbar-track-color: #171a21; scrollbar-arrow-color: #66c0f4; }
+.tile { position: relative; float: left; width: 200px; margin: 0 14px 18px 0; cursor: pointer; }
+.art { position: relative; width: 200px; height: 94px; border: 2px solid #2a475e; border-bottom-width: 5px; border-radius: 14px; overflow: hidden; background: #223447; transition: transform .12s ease; }
+.art img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.art .ltr { position: absolute; top: 0; left: 0; right: 0; line-height: 86px; text-align: center; font-size: 28px; font-weight: 900; color: rgba(199, 213, 224, .8); }
+.tile:hover .art { transform: translateY(-3px); }
+.tile:active .art { transform: translateY(2px); }
+.tile.sel .art { border-color: #66c0f4; border-bottom-color: #3d8fbe; box-shadow: 0 0 0 3px rgba(102, 192, 244, .3); }
+.chk { display: none; position: absolute; top: -9px; right: -9px; width: 26px; height: 26px; line-height: 22px; border-radius: 50%; text-align: center; font-size: 13px; font-weight: 900; color: #0e1b2a; background: #66c0f4; border: 2px solid #3d8fbe; border-bottom-width: 3px; z-index: 2; }
+.tile.sel .chk { display: block; }
+.tt { margin-top: 8px; padding: 0 2px; font-size: 13px; font-weight: 800; color: #8f98a0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile:hover .tt, .tile.sel .tt { color: #fff; }
+
+.empty { clear: both; text-align: center; color: #8f98a0; font-weight: 800; padding: 50px 16px 16px 16px; font-size: 14px; line-height: 1.7; }
+.empty .mini { margin: 10px 4px 0 4px; padding: 5px 14px; }
+.diag { clear: both; margin: 10px 4px 14px 4px; padding: 10px 14px; border-radius: 12px; border: 2px solid #2a475e; background: #171a21; color: #8f98a0; font-size: 11.5px; font-weight: 800; line-height: 1.6; word-break: break-all; }
+.warn { clear: both; margin: 0 0 12px 0; padding: 8px 12px; border-radius: 12px; border: 2px solid #e5594f; border-bottom-width: 4px; background: rgba(229, 89, 79, .12); color: #f0a8a0; font-size: 12px; font-weight: 800; }
+
+/* side panel */
+.card { margin-bottom: 14px; padding: 12px 14px 14px 14px; animation: pop .45s cubic-bezier(.3, 1.4, .5, 1); }
+#step3 { display: none; }
+@keyframes pop { 0% { opacity: 0; transform: translateY(16px) scale(.96); } 100% { opacity: 1; transform: none; } }
+.lab { font-size: 11px; font-weight: 900; letter-spacing: 1.3px; color: #66c0f4; text-transform: uppercase; margin-bottom: 8px; }
+.heroart { position: relative; min-height: 100px; border-radius: 14px; overflow: hidden; background: #223447; border: 2px solid #2a475e; border-bottom-width: 5px; }
+.heroart .ltr { position: absolute; top: 0; left: 0; right: 0; line-height: 96px; text-align: center; font-size: 34px; font-weight: 900; color: rgba(199, 213, 224, .8); }
+.heroart img { position: relative; display: block; width: 100%; height: auto; }
+.hn { margin-top: 10px; font-size: 18px; font-weight: 900; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hs { font-size: 12.5px; font-weight: 800; color: #8f98a0; }
+.sh { height: 32px; font-weight: 900; font-size: 15px; color: #fff; }
+
+.drive { position: relative; padding: 10px 40px 10px 64px; min-height: 62px; margin-bottom: 10px; border-radius: 16px; background: #223447; border: 2px solid #2a475e; border-bottom-width: 5px; cursor: pointer; transition: transform .12s ease; }
+.drive:hover { transform: translateY(-2px); }
+.drive:active { transform: translateY(3px); border-bottom-width: 2px; margin-bottom: 13px; }
+.drive.sel { border-color: #66c0f4; border-bottom-color: #3d8fbe; background: #28465f; }
+.dl { position: absolute; left: 10px; top: 8px; width: 44px; height: 38px; line-height: 34px; text-align: center; border-radius: 12px; font-weight: 900; font-size: 16px; color: #0e1b2a; background: #66c0f4; border: 2px solid #3d8fbe; border-bottom-width: 4px; }
+.dt { font-size: 14.5px; font-weight: 900; color: #fff; }
+.ds { font-size: 12.5px; font-weight: 800; color: #8f98a0; margin-top: 1px; }
+.dchk { display: none; position: absolute; right: 12px; top: 18px; width: 22px; height: 22px; line-height: 20px; border-radius: 50%; text-align: center; font-size: 12px; font-weight: 900; color: #0e1b2a; background: #66c0f4; }
+.drive.sel .dchk { display: block; }
+
+#summaryBox { font-size: 14px; font-weight: 800; color: #8f98a0; margin-bottom: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#summaryBox b { color: #fff; font-weight: 900; }
+#btnWrite { display: block; width: 100%; height: 52px; border: 0; border-bottom: 6px solid #3f7a1c; border-radius: 16px; background: #5ba32b; color: #fff; font-size: 16px; font-weight: 900; cursor: pointer; }
+#btnWrite:hover { background: #67b431; }
+#btnWrite:active { transform: translateY(3px); border-bottom-width: 3px; }
+#statusBox { display: none; margin-top: 12px; padding: 8px 14px; border-radius: 14px; font-size: 13px; font-weight: 800; border: 2px solid; border-bottom-width: 4px; }
+#statusBox.ok { display: block; background: rgba(91, 163, 43, .15); border-color: #3f7a1c; color: #b6e57d; }
+#statusBox.err { display: block; background: rgba(229, 89, 79, .15); border-color: #e5594f; color: #f0a8a0; }
+</style>
+
+<script type="text/javascript">
+// try the next backup url when a banner fails to load, hide the image once they run out
+function artFail(img) {
+    var urls = (img.getAttribute('data-f') || '').split('|');
+    var n = img.n || 0;
+    if (n < urls.length && urls[n]) {
+        img.n = n + 1;
+        img.src = urls[n];
+    } else {
+        img.style.display = 'none';
+    }
+}
+</script>
+</head>
+<body>
+
+<div id="header">
+    <img class="logo" src="../assets/physlaunch.png" alt="Physlaunch">
+    <div class="brand">
+        <h1>Phys<span>launch</span></h1>
+        <p>Turn any drive into a game launcher</p>
+    </div>
+    <div id="dots">
+        <span id="dot1" class="dot on"></span>
+        <span id="dot2" class="dot"></span>
+        <span id="dot3" class="dot"></span>
+    </div>
+</div>
+
+<div id="stage">
+    <div id="paneGames" class="pane">
+        <div class="ph">
+            <button class="mini" onclick="AddLibraryFolder()">Add library...</button>
+            <button class="mini" onclick="Rescan()">Rescan</button>
+            <span class="cnt" id="gameCountLbl"></span>
+            <span class="num">1</span>Choose a game
+        </div>
+        <input id="searchBox" type="text" placeholder="Search your library..." onkeyup="SearchChanged()" oninput="SearchChanged()">
+        <div id="gameList" class="list"></div>
+    </div>
+
+    <div id="paneSide">
+        <div id="heroCard" class="pane card"></div>
+
+        <div id="step2" class="pane card">
+            <div class="sh">
+                <button id="btnRefresh" class="mini" onclick="RefreshDrives()">Refresh</button>
+                <span class="num">2</span>Choose a drive
+            </div>
+            <div id="driveList"></div>
+        </div>
+
+        <div id="step3" class="pane card">
+            <div class="sh"><span class="num">3</span>Write launcher</div>
+            <div id="summaryBox"></div>
+            <button id="btnWrite" onclick="DoWrite()">Write Game File</button>
+            <div id="statusBox"></div>
+        </div>
+    </div>
+</div>
+
+<script type="text/vbscript">
+Option Explicit
+
+Const EXTRA_KEY = "HKCU\Software\Physlaunch\ExtraLibraries"
+
+Dim fso, sh
+Dim gameNames(), gameIds(), gameArt(), gameCount
+Dim driveLetters(), driveDesc(), driveKind(), driveSerials(), driveCount
+Dim selGame, selDrive, steamPath, wroteFile, errorLog, scanLog, lastSearch, initTries
+Dim libs, seen
+Dim reManifest, reName, reInstallDir, reSkip, reVdf
+
+Set fso = CreateObject("Scripting.FileSystemObject")
+Set sh = CreateObject("WScript.Shell")
+
+selGame = -1
+selDrive = -1
+ReDim gameNames(0)
+ReDim gameIds(0)
+ReDim gameArt(0)
+ReDim driveLetters(0)
+ReDim driveDesc(0)
+ReDim driveKind(0)
+ReDim driveSerials(0)
+
+Function NewRegex(pattern, isGlobal)
+    Dim re
+    Set re = New RegExp
+    re.Pattern = pattern
+    re.IgnoreCase = True
+    re.Global = isGlobal
+    Set NewRegex = re
+End Function
+
+Set reManifest = NewRegex("^appmanifest_(\d+)\.acf$", False)
+Set reName = NewRegex("""name""\s+""([^""]+)""", False)
+Set reInstallDir = NewRegex("""installdir""\s+""([^""]+)""", False)
+Set reSkip = NewRegex("^(Steamworks Common Redistributables|Proton(\s|$)|Steam Linux Runtime|Steam Controller Configs)", False)
+' old vdf files use "1" "D:\\Games", newer ones use "path" "D:\\Games"
+Set reVdf = NewRegex("""(?:path|\d+)""\s+""([A-Za-z]:\\[^""]*)""", True)
+
+
+' ---------- small helpers ----------
+
+Sub LogError(context)
+    If Err.Number <> 0 Then
+        errorLog = errorLog & context & ": " & Err.Description & " (" & Err.Number & ")" & vbCrLf
+        Err.Clear
+    End If
+End Sub
+
+Function HtmlEncode(s)
+    s = Replace(s, "&", "&amp;")
+    s = Replace(s, "<", "&lt;")
+    s = Replace(s, ">", "&gt;")
+    s = Replace(s, """", "&quot;")
+    s = Replace(s, "'", "&#39;")
+    HtmlEncode = s
+End Function
+
+Function RegGet(key)
+    On Error Resume Next
+    RegGet = ""
+    RegGet = CStr(sh.RegRead(key))
+    Err.Clear
+End Function
+
+Function ReadTextFile(path)
+    Dim stream, ts, ok
+    ReadTextFile = ""
+    On Error Resume Next
+
+    ' ADODB gets utf-8 right, plain FSO is the fallback
+    Set stream = CreateObject("ADODB.Stream")
+    If Err.Number = 0 Then
+        stream.Type = 2
+        stream.Charset = "utf-8"
+        stream.Open
+        stream.LoadFromFile path
+        ReadTextFile = stream.ReadText
+        ok = (Err.Number = 0)
+        stream.Close
+    End If
+    Err.Clear
+    If ok And Len(ReadTextFile) > 0 Then Exit Function
+
+    ReadTextFile = ""
+    Set ts = fso.OpenTextFile(path, 1)
+    If Err.Number = 0 Then
+        ReadTextFile = ts.ReadAll
+        ts.Close
+    End If
+    Err.Clear
+End Function
+
+' gives each game a stable tile colour based on its name
+Function HueOf(s)
+    Dim i, h, c
+    h = CLng(0)
+    For i = 1 To Len(s)
+        c = AscW(Mid(s, i, 1))
+        If c < 0 Then c = c + 65536
+        h = (h * 31 + c) Mod 360
+    Next
+    HueOf = h
+End Function
+
+Function ToFileUrl(path)
+    path = Replace(path, "\", "/")
+    path = Replace(path, "%", "%25")
+    path = Replace(path, " ", "%20")
+    path = Replace(path, "#", "%23")
+    path = Replace(path, "?", "%3F")
+    path = Replace(path, "'", "%27")
+    path = Replace(path, "[", "%5B")
+    path = Replace(path, "]", "%5D")
+    ToFileUrl = "file:///" & path
+End Function
+
+Function DriveSerial(drive)
+    On Error Resume Next
+    DriveSerial = ""
+    DriveSerial = CStr(drive.SerialNumber)
+    If Err.Number <> 0 Then
+        Err.Clear
+        DriveSerial = ""
+    End If
+End Function
+
+
+' ---------- banner art ----------
+
+Function FindArt(appId)
+    Dim cache, folder, sub1, name
+    FindArt = ""
+    If steamPath = "" Then Exit Function
+    On Error Resume Next
+
+    cache = steamPath & "\appcache\librarycache\"
+
+    If fso.FileExists(cache & appId & "_header.jpg") Then
+        FindArt = ToFileUrl(cache & appId & "_header.jpg")
+    ElseIf fso.FolderExists(cache & appId) Then
+        Set folder = fso.GetFolder(cache & appId)
+        For Each name In Array("header.jpg", "library_header.jpg")
+            If FindArt = "" And fso.FileExists(folder.Path & "\" & name) Then FindArt = ToFileUrl(folder.Path & "\" & name)
+        Next
+        ' newer steam versions keep the image inside a hash-named subfolder
+        If FindArt = "" Then
+            For Each sub1 In folder.SubFolders
+                For Each name In Array("header.jpg", "library_header.jpg")
+                    If FindArt = "" And fso.FileExists(sub1.Path & "\" & name) Then FindArt = ToFileUrl(sub1.Path & "\" & name)
+                Next
+                If FindArt <> "" Then Exit For
+            Next
+        End If
+    End If
+    Err.Clear
+End Function
+
+Function ImageTag(i)
+    Dim cdn1, cdn2, src, backups
+    cdn1 = "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/" & gameIds(i) & "/header.jpg"
+    cdn2 = "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/" & gameIds(i) & "/header.jpg"
+
+    If gameArt(i) = "" Then
+        src = cdn1
+        backups = cdn2
+    Else
+        src = gameArt(i)
+        backups = cdn1 & "|" & cdn2
+    End If
+
+    ImageTag = "<img src='" & HtmlEncode(src) & "' data-f='" & HtmlEncode(backups) & "' alt='' style='visibility:hidden' onload=""javascript:this.style.visibility='visible'"" onerror=""javascript:artFail(this)"">"
+End Function
+
+
+' ---------- finding steam games ----------
+
+Function FindSteamPath()
+    Dim candidates, c, p
+    FindSteamPath = ""
+    candidates = Array( _
+        RegGet("HKCU\Software\Valve\Steam\SteamPath"), _
+        RegGet("HKLM\SOFTWARE\WOW6432Node\Valve\Steam\InstallPath"), _
+        RegGet("HKLM\SOFTWARE\Valve\Steam\InstallPath"), _
+        RegGet("HKCU\Software\Valve\Steam\InstallPath"), _
+        sh.ExpandEnvironmentStrings("%ProgramFiles(x86)%") & "\Steam", _
+        sh.ExpandEnvironmentStrings("%ProgramFiles%") & "\Steam", _
+        "C:\Program Files (x86)\Steam")
+
+    On Error Resume Next
+    For Each c In candidates
+        p = Trim(Replace(c, "/", "\"))
+        If p <> "" Then
+            If Right(p, 1) = "\" And Len(p) > 3 Then p = Left(p, Len(p) - 1)
+            If fso.FolderExists(p & "\steamapps") Then
+                FindSteamPath = p
+                Exit Function
+            End If
+        End If
+    Next
+    Err.Clear
+End Function
+
+' takes a steam folder, a library folder or a steamapps folder
+Function AddLibrary(path)
+    Dim s
+    AddLibrary = False
+    On Error Resume Next
+
+    s = Trim(Replace(path, "/", "\"))
+    If s = "" Then Exit Function
+    Do While Len(s) > 3 And Right(s, 1) = "\"
+        s = Left(s, Len(s) - 1)
+    Loop
+
+    If LCase(Right(s, 9)) <> "steamapps" Then
+        If Right(s, 1) = "\" Then
+            s = s & "steamapps"
+        Else
+            s = s & "\steamapps"
+        End If
+    End If
+
+    If libs.Exists(s) Then Exit Function
+    If fso.FolderExists(s) Then
+        libs.Add s, 1
+        AddLibrary = True
+        ReadLibraryList s & "\libraryfolders.vdf"
+    End If
+    Err.Clear
+End Function
+
+Sub ReadLibraryList(vdfPath)
+    Dim text, m
+    On Error Resume Next
+    If Not fso.FileExists(vdfPath) Then Exit Sub
+
+    text = ReadTextFile(vdfPath)
+    If text = "" Then Exit Sub
+
+    For Each m In reVdf.Execute(text)
+        AddLibrary Replace(m.SubMatches(0), "\\", "\")
+    Next
+    Err.Clear
+End Sub
+
+Sub AddGame(manifestPath, fileName)
+    Dim text, appId, title, pos
+    On Error Resume Next
+
+    appId = reManifest.Execute(fileName)(0).SubMatches(0)
+    If appId = "" Or seen.Exists("app" & appId) Then Exit Sub
+
+    text = ReadTextFile(manifestPath)
+    title = ""
+    If text <> "" Then
+        If reName.Test(text) Then
+            title = reName.Execute(text)(0).SubMatches(0)
+        ElseIf reInstallDir.Test(text) Then
+            title = reInstallDir.Execute(text)(0).SubMatches(0)
+        End If
+    End If
+    title = Replace(Replace(title, "\""", """"), "\\", "\")
+    If title = "" Then title = "App " & appId
+    If reSkip.Test(title) Then Exit Sub
+
+    seen.Add "app" & appId, 1
+    ReDim Preserve gameNames(gameCount)
+    ReDim Preserve gameIds(gameCount)
+
+    ' insert in alphabetical order so the list never needs sorting afterwards
+    pos = gameCount
+    Do While pos > 0
+        If StrComp(title, gameNames(pos - 1), 1) >= 0 Then Exit Do
+        gameNames(pos) = gameNames(pos - 1)
+        gameIds(pos) = gameIds(pos - 1)
+        pos = pos - 1
+    Loop
+    gameNames(pos) = title
+    gameIds(pos) = appId
+    gameCount = gameCount + 1
+    Err.Clear
+End Sub
+
+Sub ScanLibraries
+    Dim lib, folder, f, found
+    On Error Resume Next
+
+    For Each lib In libs.Keys
+        If Not seen.Exists("lib:" & lib) Then
+            seen.Add "lib:" & lib, 1
+            found = 0
+
+            Set folder = fso.GetFolder(lib)
+            If Err.Number <> 0 Then
+                scanLog = scanLog & lib & " : cannot open (" & Err.Description & ")" & vbCrLf
+                Err.Clear
+            Else
+                For Each f In folder.Files
+                    If reManifest.Test(f.Name) Then
+                        found = found + 1
+                        AddGame f.Path, f.Name
+                    End If
+                Next
+                scanLog = scanLog & lib & " : " & found & " manifest(s)" & vbCrLf
+            End If
+        End If
+    Next
+    Err.Clear
+End Sub
+
+Sub LoadGames
+    Dim extra, p, d, folderName, i
+
+    gameCount = 0
+    ReDim gameNames(0)
+    ReDim gameIds(0)
+    ReDim gameArt(0)
+    scanLog = ""
+    errorLog = ""
+
+    Set libs = CreateObject("Scripting.Dictionary")
+    libs.CompareMode = 1
+    Set seen = CreateObject("Scripting.Dictionary")
+    seen.CompareMode = 1
+
+    On Error Resume Next
+
+    steamPath = FindSteamPath()
+    If steamPath = "" Then
+        scanLog = scanLog & "Steam folder: not found in registry or default locations." & vbCrLf
+    Else
+        scanLog = scanLog & "Steam folder: " & steamPath & vbCrLf
+        AddLibrary steamPath
+    End If
+
+    ' libraries the user added by hand earlier
+    extra = RegGet(EXTRA_KEY)
+    For Each p In Split(extra, "|")
+        If p <> "" Then AddLibrary p
+    Next
+
+    ScanLibraries
+    LogError "Library scan"
+
+    ' still nothing, so guess at the usual library locations on every drive
+    If gameCount = 0 Then
+        scanLog = scanLog & "Nothing found yet, probing common library folders on all drives..." & vbCrLf
+        For Each d In fso.Drives
+            If d.DriveType <> 4 And d.DriveLetter <> "" Then
+                If d.IsReady Then
+                    For Each folderName In Array("SteamLibrary", "Steam", "Games\Steam", "Games\SteamLibrary", "Program Files (x86)\Steam", "Program Files\Steam")
+                        AddLibrary d.DriveLetter & ":\" & folderName
+                    Next
+                End If
+            End If
+        Next
+        Err.Clear
+        ScanLibraries
+        LogError "Fallback scan"
+    End If
+
+    If gameCount > 0 Then
+        ReDim gameArt(gameCount - 1)
+        For i = 0 To gameCount - 1
+            gameArt(i) = FindArt(gameIds(i))
+        Next
+    End If
+
+    scanLog = scanLog & gameCount & " game(s) found."
+    LogError "Banner lookup"
+End Sub
+
+
+' ---------- drives ----------
+
+' usb sticks and external disks often show up as "fixed", so ask WMI which letters are on USB
+Function UsbDriveLetters()
+    Dim wmi, disk, part, logical, letters
+    letters = ";"
+    UsbDriveLetters = letters
+    On Error Resume Next
+
+    Set wmi = GetObject("winmgmts:\\.\root\cimv2")
+    If Err.Number <> 0 Then
+        Err.Clear
+        Exit Function
+    End If
+
+    For Each disk In wmi.ExecQuery("SELECT * FROM Win32_DiskDrive WHERE InterfaceType='USB'")
+        For Each part In wmi.ExecQuery("ASSOCIATORS OF {Win32_DiskDrive.DeviceID='" & Replace(disk.DeviceID, "\", "\\") & "'} WHERE AssocClass=Win32_DiskDriveToDiskPartition")
+            For Each logical In wmi.ExecQuery("ASSOCIATORS OF {Win32_DiskPartition.DeviceID='" & part.DeviceID & "'} WHERE AssocClass=Win32_LogicalDiskToPartition")
+                letters = letters & UCase(logical.DeviceID) & ";"
+            Next
+        Next
+    Next
+    Err.Clear
+    UsbDriveLetters = letters
+End Function
+
+Sub LoadDrives
+    Dim d, kind, label, usb, letter, isFloppy, isUsb
+
+    driveCount = 0
+    ReDim driveLetters(0)
+    ReDim driveDesc(0)
+    ReDim driveKind(0)
+    ReDim driveSerials(0)
+
+    On Error Resume Next
+    usb = UsbDriveLetters()
+
+    For Each d In fso.Drives
+        letter = UCase(d.DriveLetter)
+        If letter <> "" Then
+            isFloppy = (letter = "A" Or letter = "B")
+            isUsb = (InStr(usb, ";" & letter & ":;") > 0)
+
+            If (d.DriveType = 1 Or isFloppy Or isUsb) And d.IsReady Then
+                If isFloppy Then
+                    kind = "Floppy drive"
+                ElseIf isUsb Then
+                    kind = "USB drive"
+                Else
+                    kind = "USB / removable"
+                End If
+
+                label = d.VolumeLabel
+                If label = "" Then label = "No label"
+
+                ReDim Preserve driveLetters(driveCount)
+                ReDim Preserve driveDesc(driveCount)
+                ReDim Preserve driveKind(driveCount)
+                ReDim Preserve driveSerials(driveCount)
+                driveLetters(driveCount) = letter
+                driveDesc(driveCount) = HtmlEncode(label & " - " & FormatNumber(d.FreeSpace / 1073741824, 1) & " GB free of " & FormatNumber(d.TotalSize / 1073741824, 1) & " GB")
+                driveKind(driveCount) = kind
+                driveSerials(driveCount) = DriveSerial(d)
+                driveCount = driveCount + 1
+            End If
+        End If
+        Err.Clear
+    Next
+    Err.Clear
+End Sub
+
+
+' ---------- rendering ----------
+
+Sub RenderGames(keepScroll)
+    Dim query, html, i, shown, scrollPos, cls, safe
+
+    scrollPos = gameList.scrollTop
+    query = LCase(Trim(searchBox.value))
+    shown = 0
+
+    If errorLog <> "" Then html = "<div class='warn'>" & Replace(HtmlEncode(errorLog), vbCrLf, "<br>") & "</div>"
+
+    For i = 0 To gameCount - 1
+        If query = "" Or InStr(1, gameNames(i), query, 1) > 0 Then
+            safe = HtmlEncode(gameNames(i))
+            cls = "tile"
+            If i = selGame Then cls = "tile sel"
+
+            html = html & "<div id='tile" & i & "' class='" & cls & "' title='" & safe & "' onclick=""PickGame(" & i & ")"">"
+            html = html & "<div class='art' style='background:hsl(" & HueOf(gameNames(i)) & ",30%,24%)'>"
+            html = html & "<div class='ltr'>" & HtmlEncode(UCase(Mid(gameNames(i), 1, 1))) & "</div>"
+            html = html & ImageTag(i) & "</div>"
+            html = html & "<div class='chk'>&#10003;</div>"
+            html = html & "<div class='tt'>" & safe & "</div></div>"
+            shown = shown + 1
+        End If
+    Next
+
+    If shown = 0 Then
+        If gameCount = 0 Then
+            html = html & "<div class='empty'>No installed Steam games were found.<br>" & _
+                "<button class='mini' onclick=""AddLibraryFolder()"">Locate Steam / library folder...</button>" & _
+                "<button class='mini' onclick=""Rescan()"">Rescan</button></div>" & _
+                "<div class='diag'>" & Replace(HtmlEncode(scanLog), vbCrLf, "<br>") & "</div>"
+        Else
+            html = html & "<div class='empty'>No games match your search.</div>"
+        End If
+    End If
+
+    gameList.innerHTML = html
+    If keepScroll Then gameList.scrollTop = scrollPos
+    gameCountLbl.innerText = shown & " of " & gameCount
+End Sub
+
+Sub RenderHero
+    If selGame < 0 Then Exit Sub
+
+    heroCard.innerHTML = "<div class='lab'>Selected game</div>" & _
+        "<div class='heroart' style='background:hsl(" & HueOf(gameNames(selGame)) & ",30%,24%)'>" & _
+        "<div class='ltr'>" & HtmlEncode(UCase(Mid(gameNames(selGame), 1, 1))) & "</div>" & ImageTag(selGame) & "</div>" & _
+        "<div class='hn'>" & HtmlEncode(gameNames(selGame)) & "</div>" & _
+        "<div class='hs'>App ID " & gameIds(selGame) & "</div>"
+End Sub
+
+Sub RenderDrives
+    Dim html, i, cls
+
+    For i = 0 To driveCount - 1
+        cls = "drive"
+        If i = selDrive Then cls = "drive sel"
+
+        html = html & "<div class='" & cls & "' onclick=""PickDrive(" & i & ")"">" & _
+            "<div class='dl'>" & driveLetters(i) & ":</div>" & _
+            "<div class='dt'>" & driveKind(i) & "</div><div class='ds'>" & driveDesc(i) & "</div>" & _
+            "<div class='dchk'>&#10003;</div></div>"
+    Next
+
+    If driveCount = 0 Then
+        html = "<div class='empty' style='padding:20px 8px'>No ready USB, removable or floppy drives found.<br>Connect one and press Refresh.</div>"
+    End If
+
+    driveList.innerHTML = html
+End Sub
+
+' shows or hides the side panel and the write step, and updates the progress dots
+Sub SyncUI
+    Dim hasGame, hasDrive, c1, c2, c3
+    hasGame = (selGame >= 0)
+    hasDrive = (selDrive >= 0)
+
+    If hasGame Then
+        stage.className = "split"
+    Else
+        stage.className = ""
+    End If
+
+    If hasGame And hasDrive Then
+        step3.style.display = "block"
+        summaryBox.innerHTML = "<b>" & HtmlEncode(gameNames(selGame)) & "</b> &rarr; <b>" & driveLetters(selDrive) & ":\</b>"
+    Else
+        step3.style.display = "none"
+    End If
+
+    c1 = "dot"
+    c2 = "dot"
+    c3 = "dot"
+    If hasGame Then c1 = "dot done"
+    If hasGame And hasDrive Then c2 = "dot done"
+    If wroteFile Then c3 = "dot done"
+
+    If Not hasGame Then
+        c1 = "dot on"
+    ElseIf Not hasDrive Then
+        c2 = "dot on"
+    ElseIf Not wroteFile Then
+        c3 = "dot on"
+    End If
+
+    dot1.className = c1
+    dot2.className = c2
+    dot3.className = c3
+End Sub
+
+Sub ShowStatus(cls, html)
+    SyncUI
+    statusBox.className = cls
+    statusBox.innerHTML = html
+End Sub
+
+
+' ---------- events ----------
+
+Sub Window_OnLoad
+    Dim w, h
+    w = 1020
+    h = 740
+
+    On Error Resume Next
+    window.resizeTo w, h
+    window.moveTo CInt((screen.availWidth - w) / 2), CInt((screen.availHeight - h) / 2)
+    Err.Clear
+
+    wroteFile = False
+    initTries = 0
+    lastSearch = LCase(Trim(searchBox.value))
+    gameList.innerHTML = "<div class='empty'>Scanning your Steam library...</div>"
+    SyncUI
+    searchBox.focus
+
+    ' give the window a moment to settle before the first scan
+    window.setTimeout "InitialLoad", 250, "VBScript"
+End Sub
+
+' first scan, retried a few times if it comes back empty
+Sub InitialLoad
+    On Error Resume Next
+    initTries = initTries + 1
+
+    LoadGames
+    LoadDrives
+    RenderDrives
+    RenderGames False
+    SyncUI
+
+    If gameCount = 0 And initTries < 4 Then
+        gameList.innerHTML = "<div class='empty'>Scanning your Steam library...</div>"
+        window.setTimeout "InitialLoad", 700, "VBScript"
+    End If
+End Sub
+
+Sub SearchChanged
+    Dim query
+    On Error Resume Next
+
+    query = LCase(Trim(searchBox.value))
+    If query = lastSearch Then Exit Sub
+    lastSearch = query
+
+    RenderGames False
+    gameList.scrollTop = 0
+End Sub
+
+Sub Rescan
+    On Error Resume Next
+    selGame = -1
+    selDrive = -1
+    wroteFile = False
+    statusBox.className = ""
+
+    LoadGames
+    LoadDrives
+    RenderDrives
+    RenderGames False
+    SyncUI
+End Sub
+
+Sub AddLibraryFolder
+    Dim app, folder, path
+
+    On Error Resume Next
+    Set app = CreateObject("Shell.Application")
+    Set folder = app.BrowseForFolder(0, "Select your Steam folder or a Steam library folder (one that contains 'steamapps').", 64)
+    If Err.Number <> 0 Then
+        Err.Clear
+        Exit Sub
+    End If
+    If Not IsObject(folder) Then Exit Sub
+    If folder Is Nothing Then Exit Sub
+
+    path = folder.Self.Path
+    If path = "" Then Exit Sub
+
+    ' remember it for next launch
+    sh.RegWrite EXTRA_KEY, RegGet(EXTRA_KEY) & path & "|", "REG_SZ"
+    Err.Clear
+    Rescan
+End Sub
+
+Sub PickGame(index)
+    Dim tile
+    On Error Resume Next
+    index = CLng(index)
+
+    ' only swap the highlight, rebuilding the whole grid makes the banners flicker
+    If selGame >= 0 Then
+        Set tile = document.getElementById("tile" & selGame)
+        If Not tile Is Nothing Then tile.className = "tile"
+    End If
+    selGame = index
+    Set tile = document.getElementById("tile" & index)
+    If Not tile Is Nothing Then tile.className = "tile sel"
+
+    wroteFile = False
+    statusBox.className = ""
+    RenderHero
+    RenderDrives
+    SyncUI
+End Sub
+
+Sub PickDrive(index)
+    selDrive = CLng(index)
+    wroteFile = False
+    statusBox.className = ""
+    RenderDrives
+    SyncUI
+End Sub
+
+Sub RefreshDrives
+    selDrive = -1
+    wroteFile = False
+    statusBox.className = ""
+    LoadDrives
+    RenderDrives
+    SyncUI
+End Sub
+
+' writes the app id to a hidden .phys file on the chosen drive, then reads it back to check
+Sub DoWrite
+    Dim letter, path, drive, file, ts, check, usb, isFloppy, isUsb, attributes
+
+    If selGame < 0 Or selDrive < 0 Then Exit Sub
+    wroteFile = False
+    letter = driveLetters(selDrive)
+    path = letter & ":\.phys"
+
+    On Error Resume Next
+    Err.Clear
+
+    If Not fso.DriveExists(letter) Then
+        ShowStatus "err", "The selected drive is no longer connected. Press Refresh and pick it again."
+        Exit Sub
+    End If
+
+    Set drive = fso.GetDrive(letter)
+    If Err.Number <> 0 Then
+        ShowStatus "err", "Could not access drive " & letter & ":. (" & HtmlEncode(Err.Description) & ")"
+        Err.Clear
+        Exit Sub
+    End If
+    If Not drive.IsReady Then
+        ShowStatus "err", "The selected drive is not ready (no disk, or it was unplugged)."
+        Exit Sub
+    End If
+    ' A letter can be reassigned after selection. Recheck that the inserted media is
+    ' still the same eligible drive before changing anything on it.
+    If DriveSerial(drive) <> driveSerials(selDrive) Then
+        ShowStatus "err", "The selected drive has changed. Press Refresh and pick the drive again."
+        Exit Sub
+    End If
+    usb = UsbDriveLetters()
+    isFloppy = (letter = "A" Or letter = "B")
+    isUsb = (InStr(usb, ";" & letter & ":;") > 0)
+    If Not (drive.DriveType = 1 Or isFloppy Or isUsb) Then
+        ShowStatus "err", "The selected drive is no longer removable. Press Refresh and pick a USB drive."
+        Exit Sub
+    End If
+
+    ' a previous .phys is hidden, which makes overwriting it fail unless we clear that first
+    If fso.FileExists(path) Then fso.GetFile(path).Attributes = 0
+
+    Set file = fso.CreateTextFile(path, True, False)
+    If Err.Number <> 0 Then
+        ShowStatus "err", "Could not write to the drive. Make sure it is not write-protected. (" & HtmlEncode(Err.Description) & ")"
+        Err.Clear
+        Exit Sub
+    End If
+    file.Write gameIds(selGame)
+    file.Close
+    If Err.Number <> 0 Then
+        ShowStatus "err", "Failed to save the game ID. (" & HtmlEncode(Err.Description) & ")"
+        Err.Clear
+        Exit Sub
+    End If
+
+    Set ts = fso.OpenTextFile(path, 1)
+    If Err.Number = 0 Then
+        check = Trim(ts.ReadAll)
+        ts.Close
+    End If
+    If Err.Number <> 0 Or check <> CStr(gameIds(selGame)) Then
+        Err.Clear
+        ShowStatus "err", "The file was written but could not be verified. Try again or check the drive."
+        Exit Sub
+    End If
+    fso.GetFile(path).Attributes = 2
+    If Err.Number <> 0 Then
+        ShowStatus "err", "The game file was written, but Windows could not hide it. Check the drive permissions and try again."
+        Err.Clear
+        Exit Sub
+    End If
+    attributes = fso.GetFile(path).Attributes
+    If Err.Number <> 0 Then
+        ShowStatus "err", "The game file was written, but Windows could not verify its hidden setting."
+        Err.Clear
+        Exit Sub
+    End If
+    If (attributes And 2) = 0 Then
+        ShowStatus "err", "The game file was written, but Windows did not mark it hidden."
+        Exit Sub
+    End If
+    On Error GoTo 0
+
+    wroteFile = True
+    ShowStatus "ok", "Done! Wrote hidden <b>.phys</b> (App ID " & gameIds(selGame) & ") to " & letter & ":\"
+End Sub
+</script>
+</body>
+</html>
