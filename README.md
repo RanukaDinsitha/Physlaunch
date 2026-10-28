@@ -35,11 +35,15 @@ that its optional Runner can use to launch the game through Steam.
 
 ## Install
 
-Download and run **`PhyslaunchSetup.exe`** from the latest GitHub release. It is a single-file installer with the app files and bootstrap runtime bundled inside. Setup extracts its payload to a temporary folder, runs the installer, then installs Physlaunch for the current user. A separate Java or .NET installation is not required.
+> **Note:** The first GitHub release hasn't been published yet. Until it is, use the files in `dist/setup` or `app/files` instead.
 
-Setup uses Windows MSHTA and VBScript for its installer interface. If it reports that VBScript did not start, enable **VBScript** in **Settings > System > Optional features**, close Setup, and run `PhyslaunchSetup.exe` again.
+Once released, download and run **`PhyslaunchSetup.exe`** from the latest GitHub release. It is a single-file installer with the app files and bootstrap runtime bundled inside. Setup extracts its payload to a temporary folder, runs the installer, then installs Physlaunch for the current user. A separate Java or .NET installation is not required.
 
-The release also includes `Physlaunch-Windows-HTA.zip` for people who want the individual app files. Keep its `app/` and `assets/` folders beside `Setup.hta` when extracting it.
+**In the meantime:** run the setup from `dist/setup`, or use the individual app files in `app/files`.
+
+Setup uses Windows MSHTA and VBScript for its installer interface. If it reports that VBScript did not start, enable **VBScript** in **Settings > System > Optional features**, close Setup, and run the installer again.
+
+Once released, the release will also include `Physlaunch-Windows-HTA.zip` for people who want the individual app files. Keep its `app/` and `assets/` folders beside `Setup.hta` when extracting it.
 
 ## Use
 
