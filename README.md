@@ -35,7 +35,7 @@ that its optional Runner can use to launch the game through Steam.
 
 ## Install
 
-> **Note:** The first GitHub release hasn't been published yet. Until it is, use the files in `dist/setup` or `app/files` instead.
+> **Note:** The first GitHub release hasn't been published yet. Until it is, use the setup file in `dist` folder or `app` folder instead.
 
 Once released, download and run **`PhyslaunchSetup.exe`** from the latest GitHub release. It is a single-file installer with the app files and bootstrap runtime bundled inside. Setup extracts its payload to a temporary folder, runs the installer, then installs Physlaunch for the current user. A separate Java or .NET installation is not required.
 
